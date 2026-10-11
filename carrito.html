@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tienda Sara | Mi carrito</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-sara">
+    <div class="container">
+        <a class="navbar-brand fw-bold fs-3" href="index.html">SARA.</a>
+        <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#menu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="menu">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
+                <li class="nav-item"><a class="nav-link" href="productos.html">Productos</a></li>
+                <li class="nav-item"><a class="nav-link active" href="carrito.html">Mi carrito</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<main class="container py-5">
+    <p class="text-secondary mb-1">TU COMPRA</p>
+    <h1 class="display-5 fw-bold mb-4">Mi carrito de compras</h1>
+
+    <div class="row g-4">
+        <section class="col-lg-8">
+            <div class="bg-white p-3 p-md-4 rounded-4">
+                <h2 class="h4 fw-bold mb-4">Productos seleccionados</h2>
+                <div id="listaCarrito"></div>
+                <a href="productos.html" class="btn btn-outline-dark mt-3">
+                    ← Seguir comprando
+                </a>
+            </div>
+        </section>
+
+        <aside class="col-lg-4">
+            <div class="bg-white p-4 rounded-4">
+                <h2 class="h4 fw-bold mb-4">Resumen del pedido</h2>
+
+                <label for="cupon" class="form-label">Cupón de descuento</label>
+                <div class="input-group mb-4">
+                    <input id="cupon" class="form-control" placeholder="Ej. SARA10">
+                    <button class="btn btn-outline-dark" onclick="aplicarCupon()">
+                        Aplicar
+                    </button>
+                </div>
+                <p id="mensajeCupon" class="small" aria-live="polite"></p>
+
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Subtotal</span><span id="subtotal">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Descuento</span><span id="descuento">$0.00</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>Envío estimado</span><span id="envio">$0.00</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between fw-bold fs-5 mb-4">
+                    <span>Total</span><span id="total">$0.00</span>
+                </div>
+
+                <button class="btn btn-sara btn-lg w-100" onclick="pagar()">
+                    Proceder al pago
+                </button>
+                <p class="small text-secondary mt-3 mb-0">
+                    Proyecto académico: el pago no se procesa realmente.
+                </p>
+            </div>
+        </aside>
+    </div>
+</main>
+
+<footer class="bg-sara text-white text-center py-4">
+    <h4>SARA.</h4>
+    <p class="mb-0">© 2026 Tienda Sara | Proyecto académico</p>
+</footer>
+
+<script>
+let carrito = JSON.parse(localStorage.getItem("carritoSara") || "[]");
+let tieneCupon = false;
+
+const dinero = n => "$" + n.toLocaleString("es-MX", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+});
+
+function guardar() {
+    localStorage.setItem("carritoSara", JSON.stringify(carrito));
+}
+
+function dibujarCarrito() {
+    const contenedor = document.getElementById("listaCarrito");
+
+    if (carrito.length === 0) {
+        contenedor.innerHTML = `
+            <div class="text-center py-4">
+                <h3>Tu carrito está vacío</h3>
+                <p class="text-secondary">Agrega productos para comenzar tu compra.</p>
+                <a class="btn btn-sara" href="productos.html">Ver productos</a>
+            </div>`;
+    } else {
+        contenedor.innerHTML = carrito.map(p => `
+            <div class="d-flex align-items-center gap-3 border-bottom py-3">
+                <img class="cart-image"
+                     src="https://images.unsplash.com/${p.imagen}?w=200&auto=format&fit=crop"
+                     alt="${p.nombre}">
+                <div class="flex-grow-1">
+                    <h3 class="h6 fw-bold">${p.nombre}</h3>
+                    <p class="price mb-2">${dinero(p.precio)}</p>
+                    <label class="small" for="cantidad-${p.id}">Cantidad</label>
+                    <input id="cantidad-${p.id}" type="number" min="1" max="99"
+                           value="${p.cantidad}" class="form-control form-control-sm"
+                           style="width:85px"
+                           onchange="cambiarCantidad(${p.id}, this.value)">
+                </div>
+                <div class="text-end">
+                    <p class="fw-bold">${dinero(p.precio * p.cantidad)}</p>
+                    <button class="btn btn-sm btn-outline-danger"
+                            onclick="eliminar(${p.id})">
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+        `).join("");
+    }
+
+    calcular();
+}
+
+function cambiarCantidad(id, valor) {
+    const p = carrito.find(p => p.id === id);
+    if (!p) return;
+    p.cantidad = Math.max(1, Math.min(99, parseInt(valor, 10) || 1));
+    guardar();
+    dibujarCarrito();
+}
+
+function eliminar(id) {
+    carrito = carrito.filter(p => p.id !== id);
+    guardar();
+    dibujarCarrito();
+}
+
+function aplicarCupon() {
+    const codigo = document.getElementById("cupon").value.trim().toUpperCase();
+    tieneCupon = codigo === "SARA10";
+
+    document.getElementById("mensajeCupon").textContent = tieneCupon
+        ? "Cupón aplicado: 10% de descuento."
+        : "Cupón no válido. Prueba con SARA10.";
+
+    calcular();
+}
+
+function calcular() {
+    const subtotal = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
+    const descuento = tieneCupon ? subtotal * 0.10 : 0;
+    const envio = subtotal === 0 || subtotal >= 1000 ? 0 : 99;
+    const total = subtotal - descuento + envio;
+
+    document.getElementById("subtotal").textContent = dinero(subtotal);
+    document.getElementById("descuento").textContent = dinero(descuento);
+    document.getElementById("envio").textContent = dinero(envio);
+    document.getElementById("total").textContent = dinero(total);
+}
+
+function pagar() {
+    if (carrito.length === 0) {
+        alert("Tu carrito está vacío.");
+        return;
+    }
+
+    alert("Demostración académica: el proceso de pago no está conectado a una pasarela real.");
+}
+
+dibujarCarrito();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
